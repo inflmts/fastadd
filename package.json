@@ -1,0 +1,15 @@
+{
+  "private": "true",
+  "name": "fastadd",
+  "version": "0.0.0",
+  "description": "",
+  "author": "Daniel Li <inflmts@gmail.com>",
+  "scripts": {
+    "serve": "vite",
+    "build": "vite build"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.4.3"
+  }
+}
