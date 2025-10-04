@@ -1,5 +1,8 @@
-const VALUES_A = [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19];
-const VALUES_B = [6, 7, 8, 9];
+const VALUES = [
+  3, 4, 5, 5,
+  6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9,
+  11, 11, 12, 12, 13, 13, 14, 14, 15, 16, 17, 18, 19
+];
 
 const params = new URLSearchParams(location.search);
 
@@ -17,24 +20,24 @@ function getElement(id) {
 
 const homeElement = getElement('home');
 const roundElement = getElement('round');
-
+const resultBarElement = getElement('result-bar');
+const resultCorrectLineElement = getElement('result-correct-line');
 const resultCorrectElement = getElement('result-correct');
+const resultIncorrectLineElement = getElement('result-incorrect-line');
 const resultIncorrectElement = getElement('result-incorrect');
 const resultTotalElement = getElement('result-total');
-const startButton = getElement('start-button');
-
-const returnButton = getElement('return-button');
 const timerElement = getElement('timer');
 const statusCorrectElement = getElement('status-correct');
 const statusIncorrectElement = getElement('status-incorrect');
 const promptElement = getElement('prompt');
 const inputElement = getElement('input');
-const nextButton = getElement('next-button');
-
-const numberButtons = new Array(10);
 
 function randomSelect(list) {
   return list[Math.floor(Math.random() * list.length)];
+}
+
+function randomInt(min, max) {
+  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 let isRound = false;
@@ -44,11 +47,12 @@ let roundPrevTime;
 let roundTimeoutID;
 let roundCorrect;
 let roundIncorrect;
+let roundGenerator;
 let exerciseCompleted;
 let exerciseInput;
 let exerciseAnswer;
 
-function startRound() {
+function startRound(type) {
   isRound = true;
   roundActive = true;
   roundTime = initialRoundTime;
@@ -56,6 +60,7 @@ function startRound() {
   roundTimeoutID = null;
   roundCorrect = 0;
   roundIncorrect = 0;
+  roundGenerator = type;
   homeElement.style.display = 'none';
   roundElement.style.display = null;
   statusCorrectElement.textContent = '0';
@@ -65,14 +70,21 @@ function startRound() {
 }
 
 function endRound() {
+  const total = roundCorrect + roundIncorrect;
   isRound = false;
   if (roundTimeoutID !== null)
     clearTimeout(roundTimeoutID);
   homeElement.style.display = null;
   roundElement.style.display = 'none';
-  resultCorrectElement.textContent = roundCorrect;
-  resultIncorrectElement.textContent = roundIncorrect;
-  resultTotalElement.textContent = roundCorrect + roundIncorrect;
+  if (total) {
+    resultBarElement.classList.add('enabled');
+    resultBarElement.style.setProperty('--progress', `${100 * roundCorrect / total}%`);
+    resultCorrectLineElement.classList.toggle('enabled', roundCorrect !== 0);
+    resultCorrectElement.textContent = roundCorrect;
+    resultIncorrectLineElement.classList.toggle('enabled', roundIncorrect !== 0);
+    resultIncorrectElement.textContent = roundIncorrect;
+    resultTotalElement.textContent = total;
+  }
 }
 
 function updateTimer() {
@@ -97,16 +109,26 @@ function updateTimer() {
   }
 }
 
-function startExercise() {
-  const swap = Math.random() < 0.5;
-  const a = randomSelect(swap ? VALUES_B : VALUES_A);
-  const b = randomSelect(swap ? VALUES_A : VALUES_B);
-  promptElement.textContent = `${a} + ${b}`;
+function generateExerciseAdd() {
+  const a = randomSelect(VALUES);
+  const b = randomSelect(VALUES);
+  return [`${a} + ${b}`, `${a + b}`];
+}
 
+function generateExerciseSub() {
+  const a = randomSelect(VALUES);
+  const b = randomSelect(VALUES);
+  return [`${a + b} \u2212 ${b}`, `${a}`];
+}
+
+function startExercise() {
+  let prompt, answer;
+  do [prompt, answer] = roundGenerator();
+  while (prompt === promptElement.textContent);
+  promptElement.textContent = prompt;
   exerciseCompleted = false;
   exerciseInput = '';
-  exerciseAnswer = `${a + b}`;
-
+  exerciseAnswer = answer;
   inputElement.classList.remove('input-correct', 'input-incorrect', 'input-timeout');
   inputElement.classList.add('input-empty');
   inputElement.textContent = '?';
@@ -143,8 +165,10 @@ function inputDigit(digit) {
 
 const buttonKeyMap = Object.create(null);
 
-function setupButton(button, keys, callback) {
-  const activate = () => { button.classList.add('button-active'); if (isRound && roundActive) callback(); };
+function bindButton(button, keys, callback) {
+  if (typeof button === 'string')
+    button = getElement(button);
+  const activate = () => { button.classList.add('button-active'); callback(); };
   const deactivate = () => { button.classList.remove('button-active'); };
   button.addEventListener('pointerdown', activate);
   button.addEventListener('pointerup', deactivate);
@@ -154,41 +178,40 @@ function setupButton(button, keys, callback) {
 }
 
 window.addEventListener('keydown', (ev) => {
-  if (!ev.repeat) {
-    if (!isRound && ev.code === 'Space')
-      startRound();
-    else if (isRound && roundActive && ev.code in buttonKeyMap)
-      buttonKeyMap[ev.code].activate();
-    else if (isRound && ev.code === 'Escape')
-      endRound();
-  }
+  if (!ev.repeat && ev.code in buttonKeyMap)
+    buttonKeyMap[ev.code].activate();
 });
 
 window.addEventListener('keyup', (ev) => {
-  if (isRound && ev.code in buttonKeyMap)
+  if (ev.code in buttonKeyMap)
     buttonKeyMap[ev.code].deactivate();
 });
 
 for (let n = 0; n < 10; n++) {
-  const button = getElement(`number-button-${n}`);
-  setupButton(button, [`Digit${n}`, `Numpad${n}`], () => {
-    if (!exerciseCompleted)
+  bindButton(`number-button-${n}`, [`Digit${n}`, `Numpad${n}`], () => {
+    if (isRound && roundActive && !exerciseCompleted)
       inputDigit(n);
   });
-  numberButtons[n] = button;
 }
 
-setupButton(nextButton, ['Space'], () => {
-  if (exerciseCompleted)
+bindButton('next-button', ['Space'], () => {
+  if (!isRound)
+    startRound(generateExerciseAdd);
+  else if (roundActive && exerciseCompleted)
     startExercise();
 });
 
-startButton.addEventListener('click', () => {
+bindButton('start-add', ['KeyA'], () => {
   if (!isRound)
-    startRound();
+    startRound(generateExerciseAdd);
 });
 
-returnButton.addEventListener('click', () => {
+bindButton('start-sub', ['KeyS'], () => {
+  if (!isRound)
+    startRound(generateExerciseSub);
+});
+
+bindButton('return-button', ['Escape'], () => {
   if (isRound)
     endRound();
 });

@@ -5,24 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FastAdd</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="main.css">
-  <script type="module" src="main.js"></script>
-  <!-- fonts -->
   <link rel="preconnect" href="https://rsms.me/">
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="main.css">
+  <script type="module" src="main.js"></script>
 </head>
 <body>
   <div id="home">
+  <div>
     <div id="title">FastAdd</div>
     <div id="description">
       An adding game by Daniel Li.
     </div>
     <div id="result">
+      <div id="result-bar"><div id="result-progress"></div></div>
       <div id="result-correct-line"><span id="result-correct">0</span> correct</div>
       <div id="result-incorrect-line"><span id="result-incorrect">0</span> incorrect</div>
       <div id="result-total-line"><span id="result-total">0</span> total</div>
     </div>
-    <button id="start-button">START</button>
+    <div id="start-buttons">
+      <button id="start-add">ADD</button>
+      <button id="start-sub">SUBTRACT</button>
+    </div>
+  </div>
   </div>
   <div id="round" style="display: none">
     <div id="topbar">
@@ -31,9 +36,8 @@
       </div>
       <div id="timer"></div>
       <div id="topbar-right">
-        <div id="status">
-          <span id="status-correct"></span>/<span id="status-incorrect"></span>
-        </div>
+        +<span id="status-correct"></span>
+        &minus;<span id="status-incorrect"></span>
       </div>
     </div>
     <div id="display">
