@@ -1,3 +1,8 @@
 export default {
-  appType: 'mpa'
+  appType: 'mpa',
+  build: {
+    modulePreload: {
+      polyfill: false
+    }
+  }
 };
